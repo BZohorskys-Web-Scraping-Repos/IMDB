@@ -3,6 +3,7 @@ import sys
 from bs4 import BeautifulSoup as bs
 
 def printUrlInfo(infoUrl):
+    print()
     r = requests.get(infoUrl)
     if r.status_code == 200:
         soup = bs(r.content, 'html.parser')
@@ -32,8 +33,12 @@ def main():
         soup = bs(r.content, 'html.parser')
         findSection = soup.find('div', {'class':'findSection'})
         resultTexts = findSection.find_all('td','result_text')
-        for text in resultTexts:
+        for idx, text in enumerate(resultTexts):
             printUrlInfo(''.join([site, text.find('a').get('href')]))
+            if idx + 1 != len(resultTexts):
+                userContinue = input("Continue?(enter/q) ")
+                if userContinue == 'q':
+                    break
     else:
         print('Did not receive a 200 response code. Check network connection.')
     
