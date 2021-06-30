@@ -21,3 +21,21 @@ Run Project
     Activate virtual environment
     In the root directory:
         python main.py <search argument>
+
+
+Build Project
+-------------
+    Dev Test
+    ++++++++
+        Activate virtual environment
+        Run setup.py
+            > python setup.py develop
+        An egg directory should have been created
+        Test Tool
+            > imdb <search argument>
+
+    Create .tar.gz file which can be install with pip
+    +++++++++++++++++++++++++++++++++++++++++++++++++
+        Activate virtual environment
+        Run setup.py
+            > python setup.py sdist bdist_wheel
