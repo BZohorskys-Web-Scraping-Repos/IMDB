@@ -1,3 +1,5 @@
 virtualenv/
 .vscode/
 *.swp
+__pycache__/
+bpz_imdb.egg-info/
