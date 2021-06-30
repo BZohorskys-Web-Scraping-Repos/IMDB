@@ -2,8 +2,15 @@ import requests
 import sys
 import webbrowser
 from bs4 import BeautifulSoup as bs
+import logging
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(asctime)-15s [%(levelname)s] %(funcName)s: %(message)s',
+)
 
 def printUrlInfo(infoUrl):
+    logging.info(locals())
     print()
     r = requests.get(infoUrl)
     if r.status_code == 200:
