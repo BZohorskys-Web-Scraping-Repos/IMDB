@@ -9,7 +9,7 @@ setup(
     author = 'Brian Zohorsky',
     author_email = 'brianpzohorsky@gmail.com',
     license = 'MIT License',
-    description = 'Fetches information from rottentomatoes.com',
+    description = 'Fetches information from imdb.com',
     url = 'git@gitlab.com:bzohorsky/coding-projects/web-scraping/imdb.git',
     py_modules = ['main'],
     packages = find_packages(),
