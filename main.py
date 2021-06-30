@@ -52,10 +52,13 @@ def main():
                     pass
                 else:
                     break
-
+            else:
+                userResponse = input("Open or Quit? (o/q) ")
+                if userResponse == 'o':
+                    webbrowser.open(url_info)
     else:
         print('Did not receive a 200 response code. Check network connection.')
-    
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print('Search string required. Please provide a value to search.')
