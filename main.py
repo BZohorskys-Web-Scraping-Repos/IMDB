@@ -1,5 +1,6 @@
 import requests
 import sys
+import webbrowser
 from bs4 import BeautifulSoup as bs
 
 def printUrlInfo(infoUrl):
@@ -34,11 +35,17 @@ def main():
         findSection = soup.find('div', {'class':'findSection'})
         resultTexts = findSection.find_all('td','result_text')
         for idx, text in enumerate(resultTexts):
-            printUrlInfo(''.join([site, text.find('a').get('href')]))
+            url_info = ''.join([site, text.find('a').get('href')])
+            printUrlInfo(url_info)
             if idx + 1 != len(resultTexts):
-                userContinue = input("Continue?(enter/q) ")
-                if userContinue == 'q':
+                userResponse = input("Open, Next, Quit? (o/n/q) ")
+                if userResponse == 'o':
+                    webbrowser.open(url_info)
+                elif userResponse == 'n':
+                    pass
+                else:
                     break
+
     else:
         print('Did not receive a 200 response code. Check network connection.')
     
