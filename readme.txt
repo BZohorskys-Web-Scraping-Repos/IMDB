@@ -39,3 +39,6 @@ Build Project
         Activate virtual environment
         Run setup.py
             > python setup.py sdist bdist_wheel
+        Test Tool
+            Deactivate virtualenv
+            pip install <path to .tar.gz file in dist dir>
