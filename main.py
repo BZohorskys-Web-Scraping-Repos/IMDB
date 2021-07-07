@@ -15,11 +15,23 @@ def printUrlInfo(infoUrl):
     if r.status_code == 200:
         soup = bs(r.content, 'html.parser')
         titleWrapper = soup.find('h1', {'class':''})
+        subtext = soup.find('div', {'class':'subtext'})
         plotSummary = soup.find('div', {'class':'summary_text'})
-        print(titleWrapper.get_text()) if titleWrapper is not None else print('Failed to retrieve title and date.')
+        print(titleWrapper.get_text().strip(), end=' |') if titleWrapper is not None else print('Failed to retrieve title.')
+        printSubtext(subtext.get_text())
         print('Summary: ' + str(plotSummary.get_text()).strip()) if plotSummary is not None else print('Failed to retrieve movie plot summary.')  
     else:
         print('Did not receive a 200 response code. Check network connection.')
+
+def printSubtext(subtext):
+    if subtext is None:
+        print('Faile to retrieve subtext data.')
+        return
+    subtext = subtext.split('\n')
+    for idx in range(len(subtext)):
+        subtext[idx] = subtext[idx].strip()
+    subtext = ' '.join(subtext)
+    print(subtext)
 
 def printActorUrlInfo(infoUrl):
     logging.info(locals())
