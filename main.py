@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup as bs
 import logging
 
 logging.basicConfig(
-    level=logging.WARNING,
+    level=logging.WARN,
     format='%(asctime)-15s [%(levelname)s] %(funcName)s: %(message)s',
 )
 
@@ -14,24 +14,26 @@ def printUrlInfo(infoUrl):
     r = requests.get(infoUrl)
     if r.status_code == 200:
         soup = bs(r.content, 'html.parser')
-        titleWrapper = soup.find('h1', {'class':''})
-        subtext = soup.find('div', {'class':'subtext'})
-        plotSummary = soup.find('div', {'class':'summary_text'})
-        print(titleWrapper.get_text().strip(), end=' |') if titleWrapper is not None else print('Failed to retrieve title.')
-        printSubtext(subtext.get_text())
+        titleWrapper = soup.find('h1', {'data-testid':'hero-title-block__title'})
+        subtext = soup.find('ul', {'data-testid':'hero-title-block__metadata'})
+        plotSummary = soup.find('span', {'data-testid':'plot-l'})
+        print(titleWrapper.get_text().strip(), end=' | ') if titleWrapper is not None else print('Failed to retrieve title.')
+        printSubtext(subtext)
         print('Summary: ' + str(plotSummary.get_text()).strip()) if plotSummary is not None else print('Failed to retrieve movie plot summary.')  
     else:
         print('Did not receive a 200 response code. Check network connection.')
 
 def printSubtext(subtext):
     if subtext is None:
-        print('Faile to retrieve subtext data.')
+        print('Failed to retrieve subtext data.')
         return
-    subtext = subtext.split('\n')
-    for idx in range(len(subtext)):
-        subtext[idx] = subtext[idx].strip()
-    subtext = ' '.join(subtext)
-    print(subtext)
+    data = subtext.find_all('a')
+    for a in data:
+        a.clear()
+    data = subtext.find_all('li')
+    for li in data:
+        print(li.get_text(), end=' ')
+    print()
 
 def printActorUrlInfo(infoUrl):
     logging.info(locals())
