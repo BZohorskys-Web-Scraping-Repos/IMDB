@@ -14,13 +14,14 @@ setup(
     py_modules = ['main'],
     packages = find_packages(),
     install_requires = [requirements],
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     classifiers=[
         'Programing Language :: Python :: 3.8',
         'Operating System :: OS Indepenent',
     ],
-    entry_points = '''
-        [console_scripts]
-        imdb=main:main
-    '''
+    entry_points = {
+        "console_scripts":[
+            "imdb = src.__main__:main"
+        ]
+    },
 )
