@@ -1,5 +1,6 @@
 from re import M
 from typing import ContextManager
+from attr import define
 from lxml import etree
 import aiohttp
 import asyncio
@@ -12,6 +13,8 @@ logging.basicConfig(
     level=logging.WARN,
     format='%(asctime)-15s [%(levelname)s] %(funcName)s: %(message)s',
 )
+
+SITE = 'https://www.imdb.com/'
 
 async def get_webpage(url):
     async with aiohttp.ClientSession() as session:
@@ -28,31 +31,58 @@ async def idleAnimation(task):
         print('\r', frame, sep='', end='', flush=True)
         await asyncio.sleep(0.2)
 
-def displayTitleInfo(html):
+def interactive_console(screen, data):
+    pos = 0
+    while pos < len(data):
+        screen.clear()
+        screen.addstr("({0}/{1})\n".format(pos+1, len(data)))
+        for key in data[pos]:
+            screen.addstr(data[pos][key] + '\n')
+        screen.addstr("Next, Previous, Open, or Quit? (j, k, o, q)")
+        user_response = screen.getkey()
+        valid_response = False
+        while not valid_response:
+            if user_response == 'j':
+                valid_response = True
+                pos += 1
+            elif user_response == 'k':
+                if pos != 0:
+                    valid_response = True
+                    pos  -= 1
+                else:
+                    user_response = screen.getkey()
+            elif user_response == 'o':
+                webbrowser.open(data[pos]['url'])
+                user_response = screen.getkey()
+            elif user_response == 'q':
+                valid_response = True
+                pos = len(data)
+            else:
+                user_response = screen.getkey()
+
+def getTitleInfo(html, url):
     content = {}
+    content['url'] = url
     content['title'] = ''.join(html.xpath("//h1[@data-testid='hero-title-block__title']/text()"))
     metadata = html.xpath("//ul[contains(@data-testid,'hero-title-block')]")[0]
-    for a in metadata.xpath("//a"):
+    for a in metadata.xpath(".//a"):
         a.getparent().remove(a)
     content['metadata'] = []
     for data in metadata.xpath("./li"):
         content['metadata'].append(''.join(data.xpath("./descendant-or-self::*/text()")))
     content['metadata'] = ' | '.join(content['metadata'])
-#    content['runtine'] = 
-#    content['score'] = 
-#    content['summary'] = 
-#    content['trailers'] = 
-#    content[''] = 
-#    content[''] = 
-#    content[''] = 
-#    content[''] = 
-    for key in content:
-        print(f'{content[key]}')
+    numerator = html.xpath("//span[contains(@class,'AggregateRatingButton')]/text()")[0]
+    denominator = html.xpath("//span[contains(@class,'AggregateRatingButton')]/following::span[1]")[0]
+    score = numerator + ''.join(denominator.xpath("./text()"))
+    content['metadata' ] += (' | ' + score)
+    content['summary'] = ''.join(html.xpath(".//span[contains(@class,'GenresAndPlot')][1]/text()"))
+    content['tags'] = ', '.join(html.xpath("//span[@class='ipc-chip__text']/text()")[:3])
+    content['trailers'] = SITE + ''.join(html.xpath("//a[@aria-label='Watch {VideoTitle}']/@href"))[1::]
+    return content
 
 async def search(query_string):
-    site = 'https://www.imdb.com/'
     query = 'find?q='
-    queryUrl = ''.join(list([site, query, query_string]))
+    queryUrl = ''.join(list([SITE, query, query_string]))
     webRequestTask = asyncio.create_task(get_webpage(queryUrl))
     await idleAnimation(webRequestTask)
     if webRequestTask.result()['code'] == 200:
@@ -68,11 +98,13 @@ async def search(query_string):
                 urlTasks = []
                 titleUrls = section.xpath(".//td[contains(@class,'result_text')]/a/@href")
                 for url in titleUrls:
-                    urlTasks.append(asyncio.create_task(get_webpage(site + url[1::])))
+                    urlTasks.append(asyncio.create_task(get_webpage(SITE + url[1::])))
                 await idleAnimation(asyncio.gather(*urlTasks))
-                for task in urlTasks:
-                    if task.result()['code'] == 200:
-                        displayTitleInfo(etree.HTML(task.result()['html']))
+                data = []
+                for idx in range(len(urlTasks)):
+                    if urlTasks[idx].result()['code'] == 200:
+                        data.append(getTitleInfo(etree.HTML(urlTasks[idx].result()['html']), SITE + titleUrls[idx][1::]))
+                curses.wrapper(interactive_console, data)
             elif sectionType == 'Names':
                 pass
             else:
