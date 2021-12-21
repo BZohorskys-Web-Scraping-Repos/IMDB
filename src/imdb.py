@@ -1,114 +1,83 @@
-import requests
-import sys
-import webbrowser
-from bs4 import BeautifulSoup as bs
+from re import M
+from typing import ContextManager
+from lxml import etree
+import aiohttp
+import asyncio
+import curses
 import logging
+import itertools
+import webbrowser
 
 logging.basicConfig(
     level=logging.WARN,
     format='%(asctime)-15s [%(levelname)s] %(funcName)s: %(message)s',
 )
 
-def printUrlInfo(infoUrl):
-    logging.info(locals())
-    r = requests.get(infoUrl)
-    if r.status_code == 200:
-        soup = bs(r.content, 'html.parser')
-        titleWrapper = soup.find('h1', {'data-testid':'hero-title-block__title'})
-        subtext = soup.find('ul', {'data-testid':'hero-title-block__metadata'})
-        plotSummary = soup.find('span', {'data-testid':'plot-l'})
-        print(titleWrapper.get_text().strip(), end=' | ') if titleWrapper is not None else print('Failed to retrieve title.')
-        printSubtext(subtext)
-        print('Summary: ' + str(plotSummary.get_text()).strip()) if plotSummary is not None else print('Failed to retrieve movie plot summary.')  
-    else:
-        print('Did not receive a 200 response code. Check network connection.')
+async def get_webpage(url):
+    async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                code = response.status
+                html = await response.text()
+                return {'code':code,'html':html}
 
-def printSubtext(subtext):
-    if subtext is None:
-        print('Failed to retrieve subtext data.')
-        return
-    data = subtext.find_all('a')
-    for a in data:
-        a.clear()
-    data = subtext.find_all('li')
-    for li in data:
-        print(li.get_text(), end=' ')
-    print()
+async def idleAnimation(task):
+    for frame in itertools.cycle(r'-\|/-\|/'):
+        if task.done():
+            print('\r', '', sep='', end='', flush=True)
+            break;
+        print('\r', frame, sep='', end='', flush=True)
+        await asyncio.sleep(0.2)
 
-def printActorUrlInfo(infoUrl):
-    logging.info(locals())
-    r = requests.get(infoUrl)
-    if r.status_code == 200:
-        soup = bs(r.content, 'html.parser')
-        actorName = soup.find('h3', {'class':''}).get_text().strip()
-        bio = soup.find('table', {'id':'overviewTable'})
-        actorSummaryText = soup.find('p', {'class':''}).get_text().strip()
-        print(actorName) if actorName is not None else print('Error: No name found.')
-        printBio(bio) if bio is not None else print('Error: No bio found.')
-        print(f'Summary: {actorSummaryText}') if actorSummaryText is not None else print('Error: No summary found.')
-    else:
-        print('Did not receive a 200 response code. Check network connection.')
+def displayTitleInfo(html):
+    content = {}
+    content['title'] = ''.join(html.xpath("//h1[@data-testid='hero-title-block__title']/text()"))
+    metadata = html.xpath("//ul[contains(@data-testid,'hero-title-block')]")[0]
+    for a in metadata.xpath("//a"):
+        a.getparent().remove(a)
+    content['metadata'] = []
+    for data in metadata.xpath("./li"):
+        content['metadata'].append(''.join(data.xpath("./descendant-or-self::*/text()")))
+    content['metadata'] = ' | '.join(content['metadata'])
+#    content['runtine'] = 
+#    content['score'] = 
+#    content['summary'] = 
+#    content['trailers'] = 
+#    content[''] = 
+#    content[''] = 
+#    content[''] = 
+#    content[''] = 
+    for key in content:
+        print(f'{content[key]}')
 
-def printBio(bio):
-    tableRows = bio.find_all('tr')
-    for row in tableRows:
-        if row.td.string == 'Birth Name':
-            print(f'{row.td.string}: {row.td.next_sibling.string}')
-            continue
-        rowText = row.get_text().split('\n')
-        rowText = list(filter(None, rowText))
-        for idx in range(len(rowText)):
-            rowText[idx] = rowText[idx].strip()
-        rowText[0] = rowText[0] + ':'
-        rowText = ' '.join(rowText)
-        print(rowText)
-
-def main():
-    if len(sys.argv) != 2:
-        if len(sys.argv) < 2:
-            print('Error: Not enough arguments provided. Please provide a search term.')
-            return
-        else:
-            print('Error: Too many arguments provided.')
-            return
-    
+async def search(query_string):
     site = 'https://www.imdb.com/'
     query = 'find?q='
-    queryStr = sys.argv[1]
-    queryUrl = ''.join(list([site, query, queryStr]))
-    r = requests.get(queryUrl)
-    if r.status_code == 200:
-        soup = bs(r.content, 'html.parser')
-        findSection = soup.find('div', {'class':'findSection'})
-        resultTexts = findSection.find_all('td','result_text')
-        for idx, text in enumerate(resultTexts):
-            partialUrl = text.find('a').get('href')
-            splitPartialUrl = partialUrl.split('/')
-            urlType = splitPartialUrl[1]
-            if urlType == 'name':
-                splitPartialUrl[3] = 'bio' + splitPartialUrl[3]
-                url_info = ''.join([site, '/'.join(splitPartialUrl)])
-                printActorUrlInfo(url_info)
-            else:
-                url_info = ''.join([site, partialUrl])
-                printUrlInfo(url_info)
-            if idx + 1 != len(resultTexts):
-                userResponse = input("Open, Next, Quit? (o/n/q) ")
-                if userResponse == 'o':
-                    webbrowser.open(url_info)
-                    userResponse = input("Next or Quit? (n/q) ")
-                    if userResponse == 'q':
-                        break
-                elif userResponse == 'n':
-                    pass
-                else:
-                    break
-            else:
-                userResponse = input("Open or Quit? (o/q) ")
-                if userResponse == 'o':
-                    webbrowser.open(url_info)
-    else:
-        print('Did not receive a 200 response code. Check network connection.')
+    queryUrl = ''.join(list([site, query, query_string]))
+    webRequestTask = asyncio.create_task(get_webpage(queryUrl))
+    await idleAnimation(webRequestTask)
+    if webRequestTask.result()['code'] == 200:
+        page_html = etree.HTML(webRequestTask.result()['html'])
+        # TODO write code to either scrape actor information or a title information
+        # for title information for each title get and display title, year of publication, content rating, runtime, imdb score, summary, and trailers
 
-if __name__ == "__main__":
-    main()
+        sections = page_html.xpath("//div[@class='findSection']")
+        if sections:
+            section = sections[0]
+            sectionType = ''.join(section.xpath("./h3/descendant-or-self::*/text()"))
+            if sectionType == 'Titles':
+                urlTasks = []
+                titleUrls = section.xpath(".//td[contains(@class,'result_text')]/a/@href")
+                for url in titleUrls:
+                    urlTasks.append(asyncio.create_task(get_webpage(site + url[1::])))
+                await idleAnimation(asyncio.gather(*urlTasks))
+                for task in urlTasks:
+                    if task.result()['code'] == 200:
+                        displayTitleInfo(etree.HTML(task.result()['html']))
+            elif sectionType == 'Names':
+                pass
+            else:
+                print(f'The results that are returned are not currenlty handled.')
+        else:
+            print(f'No Results.')
+    else:
+        print(f'Recieved {webRequestTask.result()["code"]} response code.')
