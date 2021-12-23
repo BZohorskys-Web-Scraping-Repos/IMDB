@@ -1,12 +1,10 @@
-from re import M
-from typing import ContextManager
-from attr import define
 from lxml import etree
 import aiohttp
 import asyncio
 import curses
 import logging
 import itertools
+import re
 import webbrowser
 
 logging.basicConfig(
@@ -37,7 +35,8 @@ def interactive_console(screen, data):
         screen.clear()
         screen.addstr("({0}/{1})\n".format(pos+1, len(data)))
         for key in data[pos]:
-            screen.addstr(data[pos][key] + '\n')
+            if key != 'url':
+                screen.addstr(data[pos][key] + '\n')
         screen.addstr("Next, Previous, Open, or Quit? (j, k, o, q)")
         user_response = screen.getkey()
         valid_response = False
@@ -80,6 +79,20 @@ def getTitleInfo(html, url):
     content['trailers'] = SITE + ''.join(html.xpath("//a[@aria-label='Watch {VideoTitle}']/@href"))[1::]
     return content
 
+def getNameInfo(html, url):
+    content = {}
+    content['url'] = url
+    content['name'] = ''.join(html.xpath("//div[@class='parent']/h3/a/text()"))
+    content['overview'] = []
+    tableRows = html.xpath("//table[@id='overviewTable']/tr")
+    for row in tableRows:
+        rowText = row.xpath("./descendant-or-self::*/text()")
+        for idx in range(len(rowText)):
+            rowText[idx] = re.sub('[^0-9a-zA-Z ,]+', '', rowText[idx])
+        content['overview'].append(' '.join([item.strip() for item in rowText if item.strip()]))
+    content['overview'] = '\n'.join(content['overview'])
+    return content
+
 async def search(query_string):
     query = 'find?q='
     queryUrl = ''.join(list([SITE, query, query_string]))
@@ -106,7 +119,16 @@ async def search(query_string):
                         data.append(getTitleInfo(etree.HTML(urlTasks[idx].result()['html']), SITE + titleUrls[idx][1::]))
                 curses.wrapper(interactive_console, data)
             elif sectionType == 'Names':
-                pass
+                urlTasks = []
+                nameUrls = section.xpath(".//td[contains(@class,'result_text')]/a/@href")
+                for url in nameUrls:
+                    urlTasks.append(asyncio.create_task(get_webpage(SITE + url[1::] + 'bio')))
+                await idleAnimation(asyncio.gather(*urlTasks))
+                data = []
+                for idx in range(len(urlTasks)):
+                    if urlTasks[idx].result()['code'] == 200:
+                        data.append(getNameInfo(etree.HTML(urlTasks[idx].result()['html']), SITE + nameUrls[idx][1::] + 'bio'))
+                curses.wrapper(interactive_console, data)
             else:
                 print(f'The results that are returned are not currenlty handled.')
         else:
