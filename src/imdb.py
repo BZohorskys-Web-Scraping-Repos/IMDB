@@ -70,10 +70,6 @@ def getTitleInfo(html, url):
     for data in metadata.xpath("./li"):
         content['metadata'].append(''.join(data.xpath("./descendant-or-self::*/text()")))
     content['metadata'] = ' | '.join(content['metadata'])
-    numerator = html.xpath("//span[contains(@class,'AggregateRatingButton')]/text()")[0]
-    denominator = html.xpath("//span[contains(@class,'AggregateRatingButton')]/following::span[1]")[0]
-    score = numerator + ''.join(denominator.xpath("./text()"))
-    content['metadata' ] += (' | ' + score)
     content['summary'] = ''.join(html.xpath(".//span[contains(@class,'GenresAndPlot')][1]/text()"))
     content['tags'] = ', '.join(html.xpath("//span[@class='ipc-chip__text']/text()")[:3])
     content['trailers'] = SITE + ''.join(html.xpath("//a[@aria-label='Watch {VideoTitle}']/@href"))[1::]
