@@ -1,5 +1,6 @@
 aiohttp==3.8.1
 aiosignal==1.2.0
+altgraph==0.17.2
 async-timeout==4.0.1
 attrs==21.2.0
 beautifulsoup4==4.9.3
@@ -23,6 +24,8 @@ packaging==20.9
 pkginfo==1.7.0
 pycparser==2.20
 Pygments==2.9.0
+pyinstaller==4.8
+pyinstaller-hooks-contrib==2021.5
 pyparsing==2.4.7
 readme-renderer==29.0
 requests==2.25.1
