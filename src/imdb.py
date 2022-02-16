@@ -25,7 +25,7 @@ async def idleAnimation(task):
     for frame in itertools.cycle(r'-\|/-\|/'):
         if task.done():
             print('\r', '', sep='', end='', flush=True)
-            break;
+            break
         print('\r', frame, sep='', end='', flush=True)
         await asyncio.sleep(0.2)
 
@@ -96,9 +96,6 @@ async def search(query_string):
     await idleAnimation(webRequestTask)
     if webRequestTask.result()['code'] == 200:
         page_html = etree.HTML(webRequestTask.result()['html'])
-        # TODO write code to either scrape actor information or a title information
-        # for title information for each title get and display title, year of publication, content rating, runtime, imdb score, summary, and trailers
-
         sections = page_html.xpath("//div[@class='findSection']")
         if sections:
             section = sections[0]
