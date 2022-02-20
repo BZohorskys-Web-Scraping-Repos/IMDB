@@ -5,4 +5,3 @@ __pycache__/
 bpz_imdb.egg-info/
 build/
 dist/
-imdb.spec
